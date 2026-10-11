@@ -1,0 +1,12 @@
+# Data (not committed; the README explains how to download it)
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Test and notebook artefacts
+.pytest_cache/
+.ipynb_checkpoints/
