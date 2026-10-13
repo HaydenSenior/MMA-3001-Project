@@ -10,3 +10,4 @@ venv/
 # Test and notebook artefacts
 .pytest_cache/
 .ipynb_checkpoints/
+files/
