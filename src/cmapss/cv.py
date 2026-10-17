@@ -69,7 +69,8 @@ def cross_validate(
     Returns:
         ``(folds, predictions)``. ``folds`` has one row per fold with ``rmse``,
         ``mae``, ``bias``, ``score``, ``score_mean``, ``n`` (scored rows),
-        ``n_late``, ``n_early``, ``fit_seconds`` and engine counts.
+        ``n_late``, ``n_early``, ``fit_seconds``, ``predict_seconds`` (time to predict the
+        scored rows of the fold) and engine counts.
         ``predictions`` has one row per scored validation row: ``fold``,
         ``unit``, ``cycle``, ``y_true``, ``y_pred``.
 
@@ -94,13 +95,16 @@ def cross_validate(
         model.fit(train[columns].to_numpy(), train[target].to_numpy())
         fit_seconds = time.perf_counter() - t0
 
-        y_pred = np.clip(model.predict(scored[columns].to_numpy()), 0.0, upper)
+        t0 = time.perf_counter()
+        raw_pred = model.predict(scored[columns].to_numpy())
+        predict_seconds = time.perf_counter() - t0
+        y_pred = np.clip(raw_pred, 0.0, upper)
         y_true = scored["RUL"].to_numpy()
         m = evaluate(y_true, y_pred)
         fold_rows.append(
             {"fold": k, "rmse": m["rmse"], "mae": m["mae"], "bias": m["bias"], "score": m["score"],
              "score_mean": m["score"] / m["n"], "n": m["n"], "n_late": m["n_late"], "n_early": m["n_early"],
-             "fit_seconds": fit_seconds, "train_engines": int(train["unit"].nunique()),
+             "fit_seconds": fit_seconds, "predict_seconds": predict_seconds, "train_engines": int(train["unit"].nunique()),
              "val_engines": int(val["unit"].nunique())}
         )
         pred_frames.append(

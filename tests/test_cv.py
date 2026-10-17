@@ -73,7 +73,8 @@ def test_same_seed_reproducible():
     df = make_train()
     a, _ = cross_validate(df, ["rul_feat", "noise"], lambda: RidgeRegressor(1.0), seed=3)
     b, _ = cross_validate(df, ["rul_feat", "noise"], lambda: RidgeRegressor(1.0), seed=3)
-    pd.testing.assert_frame_equal(a.drop(columns="fit_seconds"), b.drop(columns="fit_seconds"))
+    timing = ["fit_seconds", "predict_seconds"]
+    pd.testing.assert_frame_equal(a.drop(columns=timing), b.drop(columns=timing))
 
 
 class _Const:
@@ -98,6 +99,27 @@ def test_errors_are_measured_against_uncapped_truth():
 def test_empty_evaluation_range_raises():
     with pytest.raises(ValueError, match="no validation rows"):
         cross_validate(make_train(), ["rul_feat"], MeanBaseline, eval_rul_range=(5000, 6000))
+
+
+def test_timings_are_recorded_and_nonnegative():
+    folds, _ = cross_validate(make_train(), ["rul_feat"], lambda: RidgeRegressor(1.0), cap=None)
+    assert (folds["fit_seconds"] >= 0).all() and (folds["predict_seconds"] >= 0).all()
+
+
+def test_scikit_learn_boosting_plugs_in_and_captures_the_cap_that_a_line_cannot():
+    """With a perfect feature and target min(RUL, 125), a line cannot follow the kink at 125; boosted trees can.
+    Scored on true RUL <= 125 only: rows above the cap carry an error no capped model can avoid."""
+    pytest.importorskip("sklearn")
+    from sklearn.ensemble import HistGradientBoostingRegressor
+
+    df = make_train(n_engines=30)
+    lin, _ = cross_validate(df, ["rul_feat"], lambda: RidgeRegressor(0), cap=125, eval_rul_range=(10, 125))
+    gbm, _ = cross_validate(
+        df, ["rul_feat"],
+        lambda: HistGradientBoostingRegressor(max_iter=100, early_stopping=False, random_state=0),
+        cap=125, eval_rul_range=(10, 125),
+    )
+    assert gbm["rmse"].mean() < 0.1 * lin["rmse"].mean()
 
 
 # ---------- fit_predict_test ----------
