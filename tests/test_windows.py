@@ -108,6 +108,46 @@ def test_all_engines_too_short_raises_even_when_dropping():
         window_features(one_engine(np.arange(3.0)), ["y"], window=5, drop_short=True)
 
 
+# ---------- edge padding (windows longer than an engine) ----------
+
+def test_edge_padding_hand_computed_and_matches_unpadded_from_full_windows():
+    """y = [1, 2, 4, 8], window 3, padded series [1, 1, 1, 2, 4, 8].
+    cycle 1: [1,1,1] mean 1, slope 0 ; cycle 2: [1,1,2] mean 4/3, slope 0.5 ; cycles 3-4 equal the unpadded rows."""
+    padded = window_features(one_engine([1, 2, 4, 8]), ["y"], window=3, stats=("mean", "slope", "std"), pad="edge")
+    plain = window_features(one_engine([1, 2, 4, 8]), ["y"], window=3, stats=("mean", "slope", "std"))
+    assert padded["cycle"].tolist() == [1, 2, 3, 4]
+    np.testing.assert_allclose(padded["y_mean"].iloc[:2], [1.0, 4 / 3])
+    np.testing.assert_allclose(padded["y_slope"].iloc[:2], [0.0, 0.5])
+    assert padded["y_std"].iloc[0] == 0.0
+    pd.testing.assert_frame_equal(padded.iloc[2:].reset_index(drop=True), plain)
+
+
+def test_edge_padding_lets_engines_shorter_than_the_window_through():
+    df = pd.concat([one_engine(np.arange(3.0), 1), one_engine(np.arange(50.0), 2)])
+    out = window_features(df, ["y"], window=10, pad="edge")
+    assert out.groupby("unit").size().tolist() == [3, 50]
+
+
+def test_edge_padding_row_count_equals_cycle_count_and_is_causal():
+    rng = np.random.default_rng(2)
+    df = one_engine(rng.normal(size=60))
+    full = window_features(df, ["y"], window=25, stats=STATS, pad="edge")
+    cut = window_features(df.iloc[:40], ["y"], window=25, stats=STATS, pad="edge")
+    assert len(full) == 60 and len(cut) == 40
+    pd.testing.assert_frame_equal(full.iloc[:40].reset_index(drop=True), cut)
+
+
+def test_edge_padding_does_not_mix_engines():
+    df = pd.concat([one_engine([0.0] * 6, 1), one_engine([100.0] * 6, 2)])
+    out = window_features(df, ["y"], window=4, stats=("mean",), pad="edge")
+    assert (out.loc[out.unit == 1, "y_mean"] == 0).all() and (out.loc[out.unit == 2, "y_mean"] == 100).all()
+
+
+def test_unknown_pad_raises():
+    with pytest.raises(ValueError, match="pad"):
+        window_features(one_engine(np.arange(10.0)), ["y"], window=3, pad="mirror")
+
+
 # ---------- input validation ----------
 
 @pytest.mark.parametrize("window", [0, -3, 2.5])

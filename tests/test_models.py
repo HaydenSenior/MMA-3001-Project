@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from cmapss.models import MeanBaseline, RidgeRegressor
+from cmapss.models import MeanBaseline, RidgeRegressor, boosting_factory
 
 
 # ---------- ridge: hand-solved cases ----------
@@ -118,3 +118,15 @@ def test_predict_rejects_wrong_width_and_nan():
 def test_mean_baseline_predicts_training_mean_everywhere():
     m = MeanBaseline().fit(np.zeros((4, 2)), np.array([10.0, 20.0, 30.0, 40.0]))
     np.testing.assert_allclose(m.predict(np.zeros((3, 2))), [25.0, 25.0, 25.0])
+
+
+# ---------- boosting factory ----------
+
+def test_boosting_factory_disables_early_stopping_and_fits():
+    pytest.importorskip("sklearn")
+    m = boosting_factory(iters=20, leaves=4, min_leaf=5)()
+    assert m.early_stopping is False and m.max_iter == 20 and m.max_leaf_nodes == 4
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(100, 3)); y = X[:, 0] * 3
+    assert np.corrcoef(m.fit(X, y).predict(X), y)[0, 1] > 0.9
+    assert boosting_factory()() is not boosting_factory()()        # a fresh model each call

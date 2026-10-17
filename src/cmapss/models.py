@@ -104,3 +104,29 @@ class RidgeRegressor:
         if not np.isfinite(X).all():
             raise ValueError("X must not contain NaN or infinite values")
         return X @ self.coef_ + self.intercept_
+
+
+def boosting_factory(iters: int = 300, leaves: int = 8, min_leaf: int = 200, lr: float = 0.05):
+    """Return a zero-argument factory for scikit-learn's histogram gradient boosting.
+
+    Early stopping is switched OFF on purpose. scikit-learn's default ('auto')
+    holds out a random 10% of *rows* to decide when to stop, and rows of one
+    engine are near-duplicates, so that check would leak across the split.
+
+    Args:
+        iters: Number of boosting iterations (trees).
+        leaves: Maximum leaves per tree.
+        min_leaf: Minimum samples per leaf.
+        lr: Learning rate.
+
+    Returns:
+        Callable returning a fresh, unfitted ``HistGradientBoostingRegressor``.
+
+    Raises:
+        ImportError: When called without scikit-learn installed.
+    """
+    from sklearn.ensemble import HistGradientBoostingRegressor
+
+    return lambda: HistGradientBoostingRegressor(
+        learning_rate=lr, max_iter=iters, max_leaf_nodes=leaves, min_samples_leaf=min_leaf,
+        l2_regularization=1.0, early_stopping=False, random_state=0)
