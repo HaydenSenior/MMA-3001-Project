@@ -1,0 +1,5 @@
+stage,peak_MB,theoretical_MB,note
+load + validate 3 files,9.647871971130371,6.690483093261719,
+window features (N=50),19.437843322753906,110.18142700195312,theoretical = windows as real data; the view avoids the copy
+ridge fit,13.709709167480469,6.6243438720703125,
+boosting fit,5.361996650695801,,

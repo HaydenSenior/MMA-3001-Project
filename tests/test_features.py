@@ -80,6 +80,26 @@ def test_trend_strength_noise_is_low_and_wear_is_high():
     assert ts["noise"] < 0.2 < 0.6 < ts["wear"]
 
 
+def test_trend_strength_matches_a_direct_pandas_spearman():
+    """Independent check of the vectorised implementation against a plain column-by-column version."""
+    df = make_engines([80, 120, 95], onset=40, seed=7)
+    cols = ["flat", "noise", "wear", "fall"]
+    fast = trend_strength(df, cols)
+    for c in cols:
+        rhos = [0.0 if g[c].nunique() <= 1 else abs(g[c].rank().corr(g["cycle"].rank()))
+                for _, g in df.groupby("unit")]
+        assert fast[c] == pytest.approx(float(np.nanmedian(rhos)), abs=1e-12)
+
+
+def test_trend_strength_handles_ties_with_average_ranks():
+    """A quantised column that steps up once still trends; ties must not produce NaN."""
+    n = 40
+    df = pd.DataFrame({"unit": 1, "cycle": np.arange(1, n + 1),
+                       "step": np.r_[np.zeros(n // 2), np.ones(n // 2)]})
+    ts = trend_strength(df, ["step"])
+    assert np.isfinite(ts["step"]) and 0.8 < ts["step"] <= 1.0
+
+
 # ---------- select_columns ----------
 
 def test_select_columns_keeps_trending_drops_flat_and_noise():

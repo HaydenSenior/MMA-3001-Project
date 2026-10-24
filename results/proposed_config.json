@@ -1,0 +1,12 @@
+{
+ "window": 50,
+ "cap": 125,
+ "input": "raw (reference)",
+ "prediction_smoothing_J": 0,
+ "boosting": {
+  "iters": 400,
+  "leaves": 16,
+  "min_leaf": 100
+ },
+ "status": "PROPOSED, not frozen; test set not scored"
+}

@@ -15,6 +15,7 @@ from typing import List, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
+from scipy.stats import rankdata
 
 
 def constant_columns(df: pd.DataFrame, columns: Sequence[str]) -> List[str]:
@@ -39,7 +40,10 @@ def trend_strength(df: pd.DataFrame, columns: Sequence[str]) -> pd.Series:
     mean no consistent trend (noise). A constant column scores 0.
 
     Spearman is used because it picks up any monotonic trend (not only linear)
-    and is insensitive to the unit and scale of the sensor.
+    and is insensitive to the unit and scale of the sensor. Ties are given average ranks.
+
+    The whole frame is ranked and correlated per engine in a vectorised pass; profiling showed
+    the previous column-by-column pandas version dominated the end-to-end pipeline.
 
     Args:
         df: Training frame with ``unit``, ``cycle`` and ``columns``.
@@ -48,16 +52,21 @@ def trend_strength(df: pd.DataFrame, columns: Sequence[str]) -> pd.Series:
     Returns:
         Series indexed by column name, values in [0, 1].
     """
-    scores = {}
-    for c in columns:
-        rhos = []
-        for _, g in df.groupby("unit"):
-            if g[c].nunique() <= 1:
-                rhos.append(0.0)
-            else:
-                rhos.append(abs(g[c].rank().corr(g["cycle"].rank())))
-        scores[c] = float(np.nanmedian(rhos))
-    return pd.Series(scores, name="trend_strength")
+    columns = list(columns)
+    per_engine = []
+    for _, g in df.sort_values(["unit", "cycle"]).groupby("unit", sort=True):
+        # Spearman is Pearson on ranks. Cycles are consecutive within an engine, so their
+        # ranks are simply 1..n and only the columns need ranking. All columns are ranked and
+        # correlated in one vectorised pass rather than one pandas call per column per engine.
+        ranks = rankdata(g[columns].to_numpy(dtype=np.float64), axis=0)
+        centred = ranks - ranks.mean(axis=0)
+        t = np.arange(1, len(g) + 1, dtype=np.float64)
+        t -= t.mean()
+        denom = np.sqrt((centred**2).sum(axis=0) * (t**2).sum())
+        # A constant column has zero rank variance, so its denominator is 0: score it 0, not NaN.
+        rho = np.divide(centred.T @ t, denom, out=np.zeros(len(columns)), where=denom > 0)
+        per_engine.append(np.abs(rho))
+    return pd.Series(np.median(np.vstack(per_engine), axis=0), index=columns, name="trend_strength")
 
 
 def select_columns(

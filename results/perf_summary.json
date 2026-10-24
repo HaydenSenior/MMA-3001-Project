@@ -1,0 +1,17 @@
+{
+ "rows": 20631,
+ "features": 42,
+ "machine_GFLOPs_ceiling": 164.32,
+ "fit_MFLOP": 78.09,
+ "predict_MFLOP": 1.73,
+ "fit_intensity_FLOP_per_byte": 11.24,
+ "predict_intensity_FLOP_per_byte": 0.244,
+ "measured_fit_exponent_rows": 0.86,
+ "measured_fit_exponent_features": 1.23,
+ "synthetic_exponents": {
+  "work_in_p": 1.96,
+  "rate_in_p": 0.76,
+  "time_in_p": 1.21
+ },
+ "note": "timings are machine-specific; test set not used"
+}

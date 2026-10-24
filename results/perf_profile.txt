@@ -1,0 +1,20 @@
+         285883 function calls (280296 primitive calls) in 0.727 seconds
+
+   Ordered by: cumulative time
+   List reduced from 987 to 12 due to restriction <12>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.003    0.003    0.727    0.727 c:\Users\haydo\OneDrive\Desktop\notes\2026_sem2\numbers\Project\MMA-3001-Project\scripts\run_profiling.py:155(pipeline)
+        1    0.049    0.049    0.374    0.374 C:\Users\haydo\OneDrive\Desktop\notes\2026_sem2\numbers\Project\MMA-3001-Project\src\cmapss\windows.py:48(window_features)
+        1    0.000    0.000    0.166    0.166 C:\Users\haydo\OneDrive\Desktop\notes\2026_sem2\numbers\Project\MMA-3001-Project\src\cmapss\loader.py:226(load_subset)
+        2    0.001    0.000    0.163    0.082 C:\Users\haydo\OneDrive\Desktop\notes\2026_sem2\numbers\Project\MMA-3001-Project\src\cmapss\loader.py:101(load_raw)
+        3    0.000    0.000    0.155    0.052 C:\Users\haydo\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\parsers\readers.py:868(read_csv)
+        3    0.001    0.000    0.155    0.052 C:\Users\haydo\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\parsers\readers.py:583(_read)
+        3    0.000    0.000    0.149    0.050 C:\Users\haydo\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\parsers\readers.py:1907(read)
+        1    0.000    0.000    0.149    0.149 C:\Users\haydo\OneDrive\Desktop\notes\2026_sem2\numbers\Project\MMA-3001-Project\src\cmapss\features.py:72(select_columns)
+        3    0.142    0.047    0.144    0.048 C:\Users\haydo\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\io\parsers\c_parser_wrapper.py:222(read)
+      410    0.003    0.000    0.129    0.000 C:\Users\haydo\AppData\Local\Programs\Python\Python312\Lib\site-packages\pandas\core\frame.py:4067(__getitem__)
+        1    0.005    0.005    0.124    0.124 C:\Users\haydo\OneDrive\Desktop\notes\2026_sem2\numbers\Project\MMA-3001-Project\src\cmapss\features.py:34(trend_strength)
+     1987    0.105    0.000    0.105    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+
+
