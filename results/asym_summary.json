@@ -1,0 +1,61 @@
+{
+ "window": 50,
+ "cap": 125,
+ "boosting": {
+  "iters": 200,
+  "leaves": 16,
+  "min_leaf": 100
+ },
+ "cost_model": {
+  "c_early": 1.0,
+  "c_late": 10.0
+ },
+ "nested": {
+  "plain (RMSE-trained)": {
+   "chosen_mean": 0.0,
+   "rmse": 14.51,
+   "bias": -1.017,
+   "score_mean": 3.099,
+   "pct_late": 49.372,
+   "pct_late_gt10": 19.443,
+   "cost": 55.73
+  },
+  "quantile chosen for cost": {
+   "chosen_mean": 0.1,
+   "rmse": 18.614,
+   "bias": -10.574,
+   "score_mean": 4.792,
+   "pct_late": 22.766,
+   "pct_late_gt10": 5.202,
+   "cost": 27.013
+  },
+  "quantile chosen for score": {
+   "chosen_mean": 0.32,
+   "rmse": 15.384,
+   "bias": -4.367,
+   "score_mean": 3.201,
+   "pct_late": 39.203,
+   "pct_late_gt10": 13.343,
+   "cost": 43.076
+  },
+  "shift, delta chosen for cost": {
+   "chosen_mean": 19.667,
+   "rmse": 24.952,
+   "bias": -20.256,
+   "score_mean": 8.682,
+   "pct_late": 7.588,
+   "pct_late_gt10": 2.043,
+   "cost": 26.176
+  },
+  "shift, delta chosen for score": {
+   "chosen_mean": 2.0,
+   "rmse": 14.79,
+   "bias": -3.017,
+   "score_mean": 3.012,
+   "pct_late": 41.597,
+   "pct_late_gt10": 15.963,
+   "cost": 47.731
+  }
+ },
+ "status": "cross-validation only; test set not scored"
+}

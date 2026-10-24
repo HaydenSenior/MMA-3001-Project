@@ -106,7 +106,8 @@ class RidgeRegressor:
         return X @ self.coef_ + self.intercept_
 
 
-def boosting_factory(iters: int = 300, leaves: int = 8, min_leaf: int = 200, lr: float = 0.05):
+def boosting_factory(iters: int = 300, leaves: int = 8, min_leaf: int = 200, lr: float = 0.05,
+                     loss: str = "squared_error", quantile: float | None = None):
     """Return a zero-argument factory for scikit-learn's histogram gradient boosting.
 
     Early stopping is switched OFF on purpose. scikit-learn's default ('auto')
@@ -118,15 +119,79 @@ def boosting_factory(iters: int = 300, leaves: int = 8, min_leaf: int = 200, lr:
         leaves: Maximum leaves per tree.
         min_leaf: Minimum samples per leaf.
         lr: Learning rate.
+        loss: scikit-learn loss name. ``"quantile"`` (with ``quantile``) trains the model to
+            predict a quantile rather than the mean, which is how an asymmetric maintenance
+            cost is targeted directly (see :mod:`cmapss.decision`).
+        quantile: Quantile in (0, 1); required when ``loss="quantile"``, ignored otherwise.
+            Values below 0.5 bias predictions early (safer).
 
     Returns:
         Callable returning a fresh, unfitted ``HistGradientBoostingRegressor``.
 
     Raises:
         ImportError: When called without scikit-learn installed.
+        ValueError: If ``loss="quantile"`` and ``quantile`` is not in (0, 1).
     """
     from sklearn.ensemble import HistGradientBoostingRegressor
 
+    if loss == "quantile" and not (quantile is not None and 0.0 < quantile < 1.0):
+        raise ValueError(f"loss='quantile' needs quantile in (0, 1), got {quantile!r}")
+    extra = {"quantile": quantile} if loss == "quantile" else {}
     return lambda: HistGradientBoostingRegressor(
         learning_rate=lr, max_iter=iters, max_leaf_nodes=leaves, min_samples_leaf=min_leaf,
-        l2_regularization=1.0, early_stopping=False, random_state=0)
+        l2_regularization=1.0, early_stopping=False, random_state=0, loss=loss, **extra)
+
+
+class PCAPipeline:
+    """Standardise features, project onto the first ``n_components`` principal components, then fit a model.
+
+    Correlated sensors repeat the same noisy signal; keeping only the strongest shared directions
+    discards some of that noise. The standardisation and projection are learned from the training
+    rows passed to ``fit`` only, so no validation information leaks in when used inside cross-validation.
+
+    Args:
+        base_factory: Zero-argument callable returning a fresh model with ``fit`` and ``predict``.
+        n_components: Number of principal components kept, at least 1.
+    """
+
+    def __init__(self, base_factory, n_components: int):
+        if int(n_components) != n_components or n_components < 1:
+            raise ValueError("n_components must be a positive integer")
+        self.base_factory, self.n_components = base_factory, int(n_components)
+
+    def fit(self, X, y) -> "PCAPipeline":
+        """Learn the projection from ``X`` and fit the base model on the projected data.
+
+        Raises:
+            ValueError: On bad inputs (see the other models) or ``n_components`` larger than the number of columns.
+        """
+        X, y = np.asarray(X, dtype=np.float64), np.asarray(y, dtype=np.float64)
+        _check_xy(X, y)
+        if self.n_components > X.shape[1]:
+            raise ValueError(f"n_components={self.n_components} exceeds the {X.shape[1]} columns")
+        self.mu_, sd = X.mean(axis=0), X.std(axis=0)
+        self.sd_ = np.where(sd == 0, 1.0, sd)
+        _, s, vt = np.linalg.svd((X - self.mu_) / self.sd_, full_matrices=False)
+        self.components_ = vt[: self.n_components]
+        self.explained_variance_ratio_ = (s**2 / np.sum(s**2))[: self.n_components]
+        self.model_ = self.base_factory().fit(self._project(X), y)
+        return self
+
+    def _project(self, X: np.ndarray) -> np.ndarray:
+        return ((X - self.mu_) / self.sd_) @ self.components_.T
+
+    def predict(self, X) -> np.ndarray:
+        """Project ``X`` with the learned components and predict with the base model.
+
+        Raises:
+            RuntimeError: If not fitted.
+            ValueError: On the wrong number of columns or non-finite values.
+        """
+        if not hasattr(self, "model_"):
+            raise RuntimeError("model is not fitted")
+        X = np.asarray(X, dtype=np.float64)
+        if X.ndim != 2 or X.shape[1] != self.mu_.shape[0]:
+            raise ValueError(f"expected X with {self.mu_.shape[0]} columns, got shape {X.shape}")
+        if not np.isfinite(X).all():
+            raise ValueError("X must not contain NaN or infinite values")
+        return self.model_.predict(self._project(X))

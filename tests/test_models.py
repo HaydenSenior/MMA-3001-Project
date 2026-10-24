@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from cmapss.models import MeanBaseline, RidgeRegressor, boosting_factory
+from cmapss.models import MeanBaseline, PCAPipeline, RidgeRegressor, boosting_factory
 
 
 # ---------- ridge: hand-solved cases ----------
@@ -130,3 +130,67 @@ def test_boosting_factory_disables_early_stopping_and_fits():
     X = rng.normal(size=(100, 3)); y = X[:, 0] * 3
     assert np.corrcoef(m.fit(X, y).predict(X), y)[0, 1] > 0.9
     assert boosting_factory()() is not boosting_factory()()        # a fresh model each call
+
+
+# ---------- PCA pipeline ----------
+
+def _low_rank_data(n=200, seed=0):
+    rng = np.random.default_rng(seed)
+    latent = rng.normal(size=(n, 2))
+    X = latent @ rng.normal(size=(2, 6)) * [1, 5, 10, 1, 100, 2] + 3                # 6 columns, rank 2
+    y = latent[:, 0] * 4 - latent[:, 1] + 1
+    return X, y
+
+
+def test_pca_with_enough_components_matches_plain_ridge_on_low_rank_data():
+    X, y = _low_rank_data()
+    full = RidgeRegressor(0).fit(X, y).predict(X)
+    pca = PCAPipeline(lambda: RidgeRegressor(0), 2).fit(X, y).predict(X)
+    np.testing.assert_allclose(pca, full, atol=1e-6)
+
+
+def test_pca_variance_ratio_and_orthonormal_components():
+    X, y = _low_rank_data()
+    m = PCAPipeline(lambda: RidgeRegressor(1.0), 3).fit(X, y)
+    assert m.explained_variance_ratio_[:2].sum() > 0.999 and (np.diff(m.explained_variance_ratio_) <= 1e-12).all()
+    np.testing.assert_allclose(m.components_ @ m.components_.T, np.eye(3), atol=1e-10)
+
+
+def test_pca_projection_is_learned_from_training_rows_only():
+    X, y = _low_rank_data()
+    m = PCAPipeline(lambda: RidgeRegressor(1.0), 2).fit(X[:100], y[:100])
+    mu_before = m.mu_.copy()
+    m.predict(X[100:] + 1e6)                      # predicting must not change anything that was learned
+    np.testing.assert_allclose(m.mu_, mu_before)
+
+
+def test_pca_errors():
+    X, y = _low_rank_data()
+    with pytest.raises(ValueError, match="n_components"):
+        PCAPipeline(lambda: RidgeRegressor(1.0), 0)
+    with pytest.raises(ValueError, match="exceeds"):
+        PCAPipeline(lambda: RidgeRegressor(1.0), 7).fit(X, y)
+    with pytest.raises(RuntimeError, match="not fitted"):
+        PCAPipeline(lambda: RidgeRegressor(1.0), 2).predict(X)
+    m = PCAPipeline(lambda: RidgeRegressor(1.0), 2).fit(X, y)
+    with pytest.raises(ValueError, match="columns"):
+        m.predict(X[:, :3])
+
+
+# ---------- quantile loss ----------
+
+def test_boosting_factory_quantile_loss_biases_predictions_low():
+    pytest.importorskip("sklearn")
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(600, 2)); y = X[:, 0] * 5 + rng.normal(0, 10, 600)
+    med = boosting_factory(100, 8, 20, loss="quantile", quantile=0.5)().fit(X, y).predict(X)
+    low = boosting_factory(100, 8, 20, loss="quantile", quantile=0.1)().fit(X, y).predict(X)
+    assert low.mean() < med.mean()
+    assert np.mean(y < low) < 0.25              # roughly a low quantile of the conditional distribution
+
+
+def test_boosting_factory_rejects_a_bad_quantile():
+    pytest.importorskip("sklearn")
+    for q in (None, 0.0, 1.0, 1.5):
+        with pytest.raises(ValueError, match="quantile"):
+            boosting_factory(loss="quantile", quantile=q)
