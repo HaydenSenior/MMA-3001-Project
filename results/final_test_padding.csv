@@ -1,0 +1,7 @@
+model,group,engines,rmse,bias
+"baseline (ridge, single cycle)",observed < window (padded),7,19.20303503,-12.23087805
+"baseline (ridge, single cycle)",observed >= window,93,21.86450059,4.827091699
+"final (boosting, windowed)",observed < window (padded),7,14.59398582,-4.226370351
+"final (boosting, windowed)",observed >= window,93,14.3587808,0.14163971
+operational (boosting q0.1),observed < window (padded),7,21.04064593,-15.99611658
+operational (boosting q0.1),observed >= window,93,17.74442294,-10.40559423

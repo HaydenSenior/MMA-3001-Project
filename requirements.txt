@@ -1,0 +1,18 @@
+# Runtime dependencies for the C-MAPSS RUL project.
+# Minimum versions reflect the features actually used:
+#   numpy        >=1.20  numpy.lib.stride_tricks.sliding_window_view (windows.py)
+#   scipy        >=1.9   scipy.stats.rankdata(axis=...)              (features.py)
+#   scikit-learn >=1.1   HistGradientBoostingRegressor(loss="quantile", quantile=...)
+#   pandas       >=1.5   groupby(observed=...), stable transform behaviour
+# Developed and tested against much newer releases; see README for the exact versions used.
+numpy>=1.20
+pandas>=1.5
+scipy>=1.9
+scikit-learn>=1.1
+matplotlib>=3.5
+
+# Testing
+pytest>=7.0
+
+# Documentation (HTML API docs)
+pdoc>=14.0

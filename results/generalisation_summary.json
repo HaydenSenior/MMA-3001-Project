@@ -1,0 +1,40 @@
+{
+ "window": 50,
+ "cap": 125,
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "splits": 5,
+ "gap": {
+  "mean predictor": {
+   "train_rmse": 40.83,
+   "validation_rmse": 40.83,
+   "gap": 0.01
+  },
+  "baseline: ridge, single cycle": {
+   "train_rmse": 24.1,
+   "validation_rmse": 24.2,
+   "gap": 0.11
+  },
+  "ridge, windowed": {
+   "train_rmse": 17.89,
+   "validation_rmse": 18.48,
+   "gap": 0.59
+  },
+  "final: boosting, windowed": {
+   "train_rmse": 8.91,
+   "validation_rmse": 14.51,
+   "gap": 5.6
+  }
+ },
+ "learning_curve": {
+  "10": 18.98,
+  "20": 16.8,
+  "40": 15.26,
+  "60": 14.76,
+  "80": 14.51
+ },
+ "note": "training data only; test set not loaded"
+}

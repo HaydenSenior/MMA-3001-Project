@@ -1,0 +1,70 @@
+{
+ "run_at_utc": "2026-10-24T06:24:40+00:00",
+ "frozen_config": {
+  "window": 50,
+  "cap": 125,
+  "boosting": {
+   "iters": 200,
+   "leaves": 16,
+   "min_leaf": 100
+  },
+  "quantile": 0.1
+ },
+ "sensors": [
+  "s2",
+  "s3",
+  "s4",
+  "s7",
+  "s8",
+  "s9",
+  "s11",
+  "s12",
+  "s13",
+  "s14",
+  "s15",
+  "s17",
+  "s20",
+  "s21"
+ ],
+ "n_test_engines": 100,
+ "padded_engines": 7,
+ "results": {
+  "baseline (ridge, single cycle)": {
+   "rmse": 21.689,
+   "mae": 17.44,
+   "bias": 3.633,
+   "score_sum": 1287.456,
+   "score_per_engine": 12.875,
+   "cost": 112.268,
+   "pct_late": 58.0,
+   "pct_late_gt10": 41.0,
+   "worst_late": 60.253,
+   "worst_early": -45.452
+  },
+  "final (boosting, windowed)": {
+   "rmse": 14.375,
+   "mae": 10.666,
+   "bias": -0.164,
+   "score_sum": 318.433,
+   "score_per_engine": 3.184,
+   "cost": 57.927,
+   "pct_late": 56.0,
+   "pct_late_gt10": 19.0,
+   "worst_late": 38.056,
+   "worst_early": -40.436
+  },
+  "operational (boosting q0.1)": {
+   "rmse": 17.995,
+   "mae": 13.095,
+   "bias": -10.797,
+   "score_sum": 398.911,
+   "score_per_engine": 3.989,
+   "cost": 23.434,
+   "pct_late": 20.0,
+   "pct_late_gt10": 3.0,
+   "worst_late": 22.591,
+   "worst_early": -47.853
+  }
+ },
+ "note": "single evaluation on the held-out test set; configuration frozen beforehand"
+}
